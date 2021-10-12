@@ -18,10 +18,11 @@ MoveListNode* List_GetMove(MoveList* list, short index) {
     return temp;
 }
 
-void List_Append(MoveList* list, short x, short y) {
+void List_Append(MoveList* list, short x, short y, int score) {
     MoveListNode* newnode = malloc(sizeof(MoveListNode));
     newnode->x = x;
     newnode->y = y;
+    newnode->score = score;
     newnode->next = NULL;
     
     //if not empty
@@ -52,4 +53,21 @@ void List_Clear(MoveList* list) {
     list->head = NULL;
     list->tail = NULL;
     list->count = 0;
+}
+
+int List_FindMax(MoveList* list) {
+    int maxindex = 0;
+    int maxscore = 0;
+    int index = 0;
+    MoveListNode* currnode = list->head;
+    while(currnode != NULL) {
+        if(currnode->score > maxscore) {
+            maxscore = currnode->score;
+            maxindex = index;
+        }
+        currnode = currnode->next;
+        index++;
+    }
+    
+    return maxindex;
 }

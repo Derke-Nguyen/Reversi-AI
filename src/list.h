@@ -4,8 +4,9 @@
 #define LIST_H
 
 typedef struct MoveListNode {
-    int x;
-    int y;
+    short x;
+    short y;
+    int score;
     struct MoveListNode* next;
 } MoveListNode;
 
@@ -17,7 +18,7 @@ typedef struct MoveList {
 
 void List_Init(MoveList** list);
 MoveListNode* List_GetMove(MoveList* list, short index);
-void List_Append(MoveList* list, short x, short y);
+void List_Append(MoveList* list, short x, short y, int score);
 void List_Clear(MoveList* list);
-
+int List_FindMax(MoveList* list);
 #endif //LIST_H

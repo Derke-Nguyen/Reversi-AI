@@ -170,17 +170,19 @@ void AIGenerateMoves() {
 }
 
 Vector2 ChooseComputerMove() {
+    printf("Appended To Move List: ");
     for(int y = 0; y < BOARD_SIDE; ++y) {
         for(int x = 0; x < BOARD_SIDE; ++x) {
             if(Board[y][x] == 0 && HasTargetsAround(x, y)) {
-                if(TotalPossibleCapture(x,y) != 0) {
-                    List_Append(AIPossibleMoves, x, y);
+                int score = TotalPossibleCapture(x,y);
+                if(score != 0) {
+                    List_Append(AIPossibleMoves, x, y, score);
                     printf("(%i, %i)", x, y);
                 }
             }
         }
     }
-    
+    printf("\n");
     
     //no possible moves
     Vector2 loc = {-1, -1};
@@ -189,12 +191,14 @@ Vector2 ChooseComputerMove() {
         return loc;
     }
     
-    //pick a random number
-    int index = (rand() % (AIPossibleMoves->count));
+    //options
+    //random->(rand() % (AIPossibleMoves->count))
+    //highest capture
+    int index = List_FindMax(AIPossibleMoves);
     MoveListNode* temp = List_GetMove(AIPossibleMoves, index);
     loc.x = temp->x;
     loc.y = temp->y;
-    //List_Clear(AIPossibleMoves);
+    List_Clear(AIPossibleMoves);
     return loc;
 }
 
