@@ -11,6 +11,8 @@
 
 #include "include/raylib.h"
 #include "list.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 /*******************************************************************************************
 * Enums and struct data types
@@ -64,6 +66,9 @@ int P2Score = 0;
 bool P1Turn = true;
 Vector2 ClickPosition = {0,0};
 
+//AI Related
+MoveList* AIPossibleMoves;
+
 /*******************************************************************************************
 * Module Function Declarations
 ********************************************************************************************/
@@ -77,12 +82,61 @@ short PlayerPiece();
 //@Return true if player turn matches player
 bool IsPlayerTurn();
 
+//Checks if there are any pieces around it that can be flipped
+//@Return true if there is an opponent token
+bool HasTargetsAround(short x, short y);
+
 //x: start x
 //y: start y
 //dx: direction to move towards x
 //dy: direction to move towards y
 //Return: number of pieces captured
 int CheckValid(short x, short y, short dx, short dy);
+
+//x: start x
+//y: start y
+//Return: number of pieces to capture in all directions
+int TotalPossibleCapture(short x, short y) {
+    if(Board[y][x] != 0) {
+        return 0;
+    }
+    
+    int totalcapture = 0;
+    
+    //check left
+    if(x-1 > -1)
+        totalcapture += CheckValid(x - 1, y, -1, 0);
+    
+    //check right
+    if(x+1 < 8)
+        totalcapture += CheckValid(x + 1, y, 1, 0);
+    
+    //check up left
+    if(x-1 > -1 && y-1 > -1)
+        totalcapture += CheckValid(x - 1, y - 1, -1, -1);
+    
+    //check up
+    if(y-1 > -1)
+        totalcapture += CheckValid(x , y - 1, 0, -1);
+    
+    //check up right
+    if(x+1 < 8 && y-1 > -1)
+        totalcapture += CheckValid(x + 1, y - 1, 1, -1);
+    
+    //check down left
+    if(x-1 > -1 && y+1 < 8)
+        totalcapture += CheckValid(x - 1, y + 1, -1, 1);
+    
+    //check down
+    if(y+1 < 8)
+        totalcapture += CheckValid(x, y + 1, 0, 1);
+    
+    //check down right
+    if(x+1 < 8 && y+1 < 8)
+        totalcapture += CheckValid(x + 1, y + 1, 1, 1);
+    
+    return totalcapture;
+}
 
 //x: start x
 //y: start y
@@ -104,15 +158,44 @@ void EndGame();
 // AI Functions
 //-----------------------------------------------------------------------------------------
 //Selects a move for AI to choose from
-void ChooseComputerMove() {
-    
-    
-    
+void AIGenerateMoves() {
     for(int y = 0; y < BOARD_SIDE; ++y) {
         for(int x = 0; x < BOARD_SIDE; ++x) {
-            
+            if(Board[y][x] != PlayerPiece()) {
+                //check pieces around for empty spot and then run a checker
+                
+            }
         }
     }
+}
+
+Vector2 ChooseComputerMove() {
+    for(int y = 0; y < BOARD_SIDE; ++y) {
+        for(int x = 0; x < BOARD_SIDE; ++x) {
+            if(Board[y][x] == 0 && HasTargetsAround(x, y)) {
+                if(TotalPossibleCapture(x,y) != 0) {
+                    List_Append(AIPossibleMoves, x, y);
+                    printf("(%i, %i)", x, y);
+                }
+            }
+        }
+    }
+    
+    
+    //no possible moves
+    Vector2 loc = {-1, -1};
+    
+    if(AIPossibleMoves->count == 0) {
+        return loc;
+    }
+    
+    //pick a random number
+    int index = (rand() % (AIPossibleMoves->count));
+    MoveListNode* temp = List_GetMove(AIPossibleMoves, index);
+    loc.x = temp->x;
+    loc.y = temp->y;
+    //List_Clear(AIPossibleMoves);
+    return loc;
 }
 
 /*******************************************************************************************
@@ -126,6 +209,8 @@ int main(void)
     SetTargetFPS(30);               // Set our game to run at 30 frames-per-second
     GameState state = SELECT;
     InitBoard();
+    AIPossibleMoves = NULL;
+    List_Init(&AIPossibleMoves);
     //--------------------------------------------------------------------------------------
     
     // Main game loop
@@ -147,22 +232,42 @@ int main(void)
             }
             break;
             case PLAY:{
-                if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                    ClickPosition = GetMousePosition();
-                    int x = (ClickPosition.x - DRAW_BOARD_X)/SQUARE_SIDE;
-                    int y = (ClickPosition.y - DRAW_BOARD_Y)/SQUARE_SIDE;
+                //TODO: If player is not p1
+                if(P1Turn) {
+                    if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                        ClickPosition = GetMousePosition();
+                        int x = (ClickPosition.x - DRAW_BOARD_X)/SQUARE_SIDE;
+                        int y = (ClickPosition.y - DRAW_BOARD_Y)/SQUARE_SIDE;
+                        if(FlipPieces(x, y)){
+                            Board[y][x] = PlayerPiece();
+                            (P1Turn) ? ++P1Score : ++P2Score;
+                            P1Turn = !P1Turn;
+                        }
+                    }
+                    //For passing
+                    else if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
+                        P1Turn = !P1Turn;
+                    }
+                }
+                //AI turn
+                else {
+                    ClickPosition = ChooseComputerMove();
+                    int x = ClickPosition.x;
+                    int y = ClickPosition.y;
+                    
+                    //pass if no possible moves
+                    if(x == -1) {
+                        P1Turn = !P1Turn;
+                    }
+                    
                     if(FlipPieces(x, y)){
                         Board[y][x] = PlayerPiece();
                         (P1Turn) ? ++P1Score : ++P2Score;
                         P1Turn = !P1Turn;
                     }
                 }
-                //For passing
-                else if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-                    P1Turn = !P1Turn;
-                }
                 
-                if(P1Score + P2Score == 64) {
+                if(P1Score + P2Score == 64 || P1Score == 0 || P2Score == 0) {
                     EndGame();
                     state = OVER;
                 }
@@ -190,7 +295,9 @@ int main(void)
                 DrawText(TextFormat("P2"), 1430, 440, 100, P1_COLOR);
             }
             break;
-            case PLAY:{
+            case PLAY:
+            case OVER:
+            {
                 DrawBoard();
                 DrawText(TextFormat("%i", P2Score), 1690, 440, 100, (!P1Turn) ? P2_COLOR :PASSIVE_COLOR);
                 DrawText(TextFormat("%i", P1Score), 1690, 640, 100, (P1Turn) ? P1_COLOR : PASSIVE_COLOR);
@@ -217,6 +324,7 @@ int main(void)
     
     // De-Initialization
     //--------------------------------------------------------------------------------------
+    free(AIPossibleMoves);
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
     
@@ -236,6 +344,30 @@ short PlayerPiece() {
 
 bool IsPlayerTurn() {
     return (P1Turn == P1IsPlayer);
+}
+
+bool HasTargetsAround(short x, short y) {
+    for(int dy = -1; dy <= 1; ++dy) {
+        short ny = y + dy;
+        if(ny < 0 || ny >= 8) {
+            continue;
+        }
+        for(short dx = -1; dx <= 1; ++dx) {
+            if(dx == 0 && dy == 0){
+                continue;
+            }
+            
+            short nx = x + dx;
+            if(nx < 0 || nx >= 8) {
+                continue;
+            }
+            
+            if(Board[ny][nx] != 0 && Board[ny][nx] != PlayerPiece()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 int CheckValid(short x, short y, short dx, short dy) {
@@ -381,6 +513,7 @@ void DrawBoard() {
 }
 
 void ResetGame() {
+    
     for(int y = 0; y < BOARD_SIDE; ++y) {
         for(int x = 0; x < BOARD_SIDE; ++x) {
             Board[y][x] = 0;
