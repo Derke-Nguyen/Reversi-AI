@@ -55,6 +55,18 @@ struct Piece {
 #define BOARD_SIDE 8
 
 short Board[BOARD_SIDE][BOARD_SIDE] = {0};
+
+const float BOARD_VALUES[BOARD_SIDE][BOARD_SIDE] = {
+    {16.16, -3.03,  0.99,  0.43,  0.43,  0.99, -3.03, 16.16},
+    {-4.12, -1.81, -0.08, -0.27, -0.27, -0.08, -1.81, -4.12},
+    {1.33 , -0.04,  0.51,  0.07,  0.07,  0.51, -0.04, 1.33 },
+    {0.6  , -0.18, -0.04, -0.01, -0.01, -0.04, -0.18, 0.6  },
+    {0.6  , -0.18, -0.04, -0.01, -0.01, -0.04, -0.18, 0.6  },
+    {1.33 , -0.04,  0.51,  0.07,  0.07,  0.51, -0.04, 1.33 },
+    {-4.12, -1.81, -0.08, -0.27, -0.27, -0.08, -1.81, -4.12},
+    {16.16, -3.03,  0.99,  0.43,  0.43,  0.99, -3.03, 16.16}
+};
+
 bool P1IsPlayer = true;
 
 bool GameOver = false;
@@ -169,13 +181,51 @@ void AIGenerateMoves() {
     }
 }
 
+int NumberOfTokensAround(short x, short y) {
+    int tokens = 0;
+    for(int dy = -1; dy <= 1; ++dy) {
+        short ny = y + dy;
+        if(ny < 0 || ny >= 8) {
+            continue;
+        }
+        for(short dx = -1; dx <= 1; ++dx) {
+            if(dx == 0 && dy == 0){
+                continue;
+            }
+            
+            short nx = x + dx;
+            if(nx < 0 || nx >= 8) {
+                continue;
+            }
+            
+            if(Board[ny][nx] != 0) {
+                ++tokens;
+            }
+        }
+    }
+    return tokens;
+}
+
+float GenerateScore(short x, short y) {
+    float score = 0;
+    //take into account frontier disks vs interior
+    score += (8 - NumberOfTokensAround(x, y));
+    
+    //take into account point values for positions
+    score += BOARD_VALUES[y][x];
+    
+    //find stable disks
+    return score;
+}
+
 Vector2 ChooseComputerMove() {
     printf("Appended To Move List: ");
     for(int y = 0; y < BOARD_SIDE; ++y) {
         for(int x = 0; x < BOARD_SIDE; ++x) {
             if(Board[y][x] == 0 && HasTargetsAround(x, y)) {
-                int score = TotalPossibleCapture(x,y);
-                if(score != 0) {
+                int capturepossible = TotalPossibleCapture(x,y);
+                if(capturepossible != 0) {
+                    float score = GenerateScore(x, y);
                     List_Append(AIPossibleMoves, x, y, score);
                     printf("(%i, %i)", x, y);
                 }
