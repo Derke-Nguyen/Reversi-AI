@@ -96,19 +96,19 @@ bool IsPlayerTurn();
 
 //Checks if there are any pieces around it that can be flipped
 //@Return true if there is an opponent token
-bool HasTargetsAround(short x, short y);
+bool HasTargetsAround(short x, short y, short tempboard[][BOARD_SIDE]);
 
 //x: start x
 //y: start y
 //dx: direction to move towards x
 //dy: direction to move towards y
 //Return: number of pieces captured
-int CheckValid(short x, short y, short dx, short dy);
+int CheckValid(short x, short y, short dx, short dy, short board[][BOARD_SIDE]);
 
 //x: start x
 //y: start y
 //Return: number of pieces to capture in all directions
-int TotalPossibleCapture(short x, short y) {
+int TotalPossibleCapture(short x, short y, short board[][BOARD_SIDE]) {
     if(Board[y][x] != 0) {
         return 0;
     }
@@ -117,35 +117,35 @@ int TotalPossibleCapture(short x, short y) {
     
     //check left
     if(x-1 > -1)
-        totalcapture += CheckValid(x - 1, y, -1, 0);
+        totalcapture += CheckValid(x - 1, y, -1, 0, board);
     
     //check right
     if(x+1 < 8)
-        totalcapture += CheckValid(x + 1, y, 1, 0);
+        totalcapture += CheckValid(x + 1, y, 1, 0, board);
     
     //check up left
     if(x-1 > -1 && y-1 > -1)
-        totalcapture += CheckValid(x - 1, y - 1, -1, -1);
+        totalcapture += CheckValid(x - 1, y - 1, -1, -1, board);
     
     //check up
     if(y-1 > -1)
-        totalcapture += CheckValid(x , y - 1, 0, -1);
+        totalcapture += CheckValid(x , y - 1, 0, -1, board);
     
     //check up right
     if(x+1 < 8 && y-1 > -1)
-        totalcapture += CheckValid(x + 1, y - 1, 1, -1);
+        totalcapture += CheckValid(x + 1, y - 1, 1, -1, board);
     
     //check down left
     if(x-1 > -1 && y+1 < 8)
-        totalcapture += CheckValid(x - 1, y + 1, -1, 1);
+        totalcapture += CheckValid(x - 1, y + 1, -1, 1, board);
     
     //check down
     if(y+1 < 8)
-        totalcapture += CheckValid(x, y + 1, 0, 1);
+        totalcapture += CheckValid(x, y + 1, 0, 1, board);
     
     //check down right
     if(x+1 < 8 && y+1 < 8)
-        totalcapture += CheckValid(x + 1, y + 1, 1, 1);
+        totalcapture += CheckValid(x + 1, y + 1, 1, 1, board);
     
     return totalcapture;
 }
@@ -153,7 +153,7 @@ int TotalPossibleCapture(short x, short y) {
 //x: start x
 //y: start y
 //Return: If any pieces were flipped
-bool FlipPieces(const short x, const short y);
+int FlipPieces(const short x, const short y, short board[][BOARD_SIDE]);
 
 //Init the board
 void InitBoard();
@@ -169,6 +169,14 @@ void EndGame();
 
 // AI Functions
 //-----------------------------------------------------------------------------------------
+
+void AIGenearteMoves();
+int Search(short depth, short tempboard[][BOARD_SIDE]);
+int NumberOfTokensAround(short x, short y);
+float EvaluateBoardState();
+float GenerateScore(short x, short y);
+Vector2 ChooseComputerMove();
+
 //Selects a move for AI to choose from
 void AIGenerateMoves() {
     for(int y = 0; y < BOARD_SIDE; ++y) {
@@ -179,6 +187,57 @@ void AIGenerateMoves() {
             }
         }
     }
+}
+
+//Recursive AI move search
+int Search(short depth, short tempboard[][BOARD_SIDE]) {
+    if(depth == 0) {
+        return EvaluateBoardState();
+    }
+    
+    //Generate a list of moves
+    MoveList* possiblemoves;
+    List_Init(&possiblemoves);
+    for(int y = 0; y < BOARD_SIDE; ++y) {
+        for(int x = 0; x < BOARD_SIDE; ++x) {
+            if(tempboard[y][x] == 0 && HasTargetsAround(x, y, tempboard)) {
+                int capturepossible = TotalPossibleCapture(x,y, tempboard);
+                if(capturepossible != 0) {
+                    float score = GenerateScore(x, y);
+                    List_Append(possiblemoves, x, y, score);
+                    printf("(%i, %i)", x, y);
+                }
+            }
+        }
+    }
+    //return if list of moves is 0
+    
+    int bestEval = 0;
+    
+    //for each move in list of moves
+    MoveListNode* iter = possiblemoves->head;
+    while(iter != NULL) {
+        //make the move
+        //make a board
+        short newtempboard[BOARD_SIDE][BOARD_SIDE] = {0};
+        for(int y = 0; y < BOARD_SIDE; ++y) {
+            for(int x = 0; x < BOARD_SIDE; ++x) {
+                newtempboard[y][x] = tempboard[y][x];
+            }
+        }
+        int evaluation = -Search(depth-1, newtempboard);
+        //set best eval
+        bestEval = (bestEval > evaluation) ? bestEval : evaluation;
+        //undo move
+        for(int y = 0; y < BOARD_SIDE; ++y) {
+            for(int x = 0; x < BOARD_SIDE; ++x) {
+                newtempboard[y][x] = tempboard[y][x];
+            }
+        }
+    }
+    
+    List_Clear(possiblemoves);
+    return bestEval;
 }
 
 int NumberOfTokensAround(short x, short y) {
@@ -206,6 +265,16 @@ int NumberOfTokensAround(short x, short y) {
     return tokens;
 }
 
+float EvaluateBoardState() {
+    float score = 0;
+    for(int y = 0; y < BOARD_SIDE; ++y) {
+        for(int x = 0; x < BOARD_SIDE; ++x) {
+        }
+    }
+    
+    return score;
+}
+
 float GenerateScore(short x, short y) {
     float score = 0;
     //take into account frontier disks vs interior
@@ -222,8 +291,8 @@ Vector2 ChooseComputerMove() {
     printf("Appended To Move List: ");
     for(int y = 0; y < BOARD_SIDE; ++y) {
         for(int x = 0; x < BOARD_SIDE; ++x) {
-            if(Board[y][x] == 0 && HasTargetsAround(x, y)) {
-                int capturepossible = TotalPossibleCapture(x,y);
+            if(Board[y][x] == 0 && HasTargetsAround(x, y, Board)) {
+                int capturepossible = TotalPossibleCapture(x,y, Board);
                 if(capturepossible != 0) {
                     float score = GenerateScore(x, y);
                     List_Append(AIPossibleMoves, x, y, score);
@@ -292,8 +361,17 @@ int main(void)
                         ClickPosition = GetMousePosition();
                         int x = (ClickPosition.x - DRAW_BOARD_X)/SQUARE_SIDE;
                         int y = (ClickPosition.y - DRAW_BOARD_Y)/SQUARE_SIDE;
-                        if(FlipPieces(x, y)){
+                        int totalchanged = FlipPieces(x, y, Board);
+                        if(totalchanged != 0){
                             Board[y][x] = PlayerPiece();
+                            if(P1Turn) {
+                                P1Score += totalchanged;
+                                P2Score -= totalchanged;
+                            }
+                            else {
+                                P2Score += totalchanged;
+                                P1Score -= totalchanged;
+                            }
                             (P1Turn) ? ++P1Score : ++P2Score;
                             P1Turn = !P1Turn;
                         }
@@ -314,7 +392,7 @@ int main(void)
                         P1Turn = !P1Turn;
                     }
                     
-                    if(FlipPieces(x, y)){
+                    if(FlipPieces(x, y, Board)){
                         Board[y][x] = PlayerPiece();
                         (P1Turn) ? ++P1Score : ++P2Score;
                         P1Turn = !P1Turn;
@@ -400,7 +478,7 @@ bool IsPlayerTurn() {
     return (P1Turn == P1IsPlayer);
 }
 
-bool HasTargetsAround(short x, short y) {
+bool HasTargetsAround(short x, short y, short board[][BOARD_SIDE]) {
     for(int dy = -1; dy <= 1; ++dy) {
         short ny = y + dy;
         if(ny < 0 || ny >= 8) {
@@ -416,7 +494,7 @@ bool HasTargetsAround(short x, short y) {
                 continue;
             }
             
-            if(Board[ny][nx] != 0 && Board[ny][nx] != PlayerPiece()) {
+            if(board[ny][nx] != 0 && board[ny][nx] != PlayerPiece()) {
                 return true;
             }
         }
@@ -424,14 +502,14 @@ bool HasTargetsAround(short x, short y) {
     return false;
 }
 
-int CheckValid(short x, short y, short dx, short dy) {
+int CheckValid(short x, short y, short dx, short dy, short board[][BOARD_SIDE]) {
     int captured = 0;
     while((x > -1 && x < 8) && (y > -1 && y < 8)) {
-        if(Board[y][x] == 0) {
+        if(board[y][x] == 0) {
             return 0;
         }
         
-        if(Board[y][x] == PlayerPiece()){
+        if(board[y][x] == PlayerPiece()){
             return captured;
         }
         ++captured;
@@ -442,8 +520,8 @@ int CheckValid(short x, short y, short dx, short dy) {
     return 0;
 }
 
-bool FlipPieces(const short x, const short y) {
-    if(Board[y][x] != 0) {
+int FlipPieces(const short x, const short y, short board[][BOARD_SIDE]) {
+    if(board[y][x] != 0) {
         return false;
     }
     
@@ -451,70 +529,62 @@ bool FlipPieces(const short x, const short y) {
     int captured = 0;
     
     //check left
-    captured = CheckValid(x - 1, y, -1, 0);
+    captured = CheckValid(x - 1, y, -1, 0, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y][x - 1 - i] = PlayerPiece();
+        board[y][x - 1 - i] = PlayerPiece();
     }
     
     //check right
-    captured = CheckValid(x + 1, y, 1, 0);
+    captured = CheckValid(x + 1, y, 1, 0, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y][x + 1 + i] = PlayerPiece();
+        board[y][x + 1 + i] = PlayerPiece();
     }
     
     //check up left
-    captured = CheckValid(x - 1, y - 1, -1, -1);
+    captured = CheckValid(x - 1, y - 1, -1, -1, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y - 1 - i][x - 1 - i] = PlayerPiece();
+        board[y - 1 - i][x - 1 - i] = PlayerPiece();
     }
     
     //check up
-    captured = CheckValid(x , y - 1, 0, -1);
+    captured = CheckValid(x , y - 1, 0, -1, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y - 1 - i][x] = PlayerPiece();
+        board[y - 1 - i][x] = PlayerPiece();
     }
     
     //check up right
-    captured = CheckValid(x + 1, y - 1, 1, -1);
+    captured = CheckValid(x + 1, y - 1, 1, -1, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y - 1 - i][x + 1 + i] = PlayerPiece();
+        board[y - 1 - i][x + 1 + i] = PlayerPiece();
     }
     
     //check down left
-    captured = CheckValid(x - 1, y + 1, -1, 1);
+    captured = CheckValid(x - 1, y + 1, -1, 1, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y + 1 + i][x - 1 - i] = PlayerPiece();
+        board[y + 1 + i][x - 1 - i] = PlayerPiece();
     }
     
     //check down
-    captured = CheckValid(x, y + 1, 0, 1);
+    captured = CheckValid(x, y + 1, 0, 1, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y + 1 + i][x] = PlayerPiece();
+        board[y + 1 + i][x] = PlayerPiece();
     }
     
     //check down right
-    captured = CheckValid(x + 1, y + 1, 1, 1);
+    captured = CheckValid(x + 1, y + 1, 1, 1, board);
     totalchanged += captured;
     for(int i = 0; i < captured; ++i) {
-        Board[y + 1 + i][x + 1 + i] = PlayerPiece();
+        board[y + 1 + i][x + 1 + i] = PlayerPiece();
     }
     
-    if(P1Turn) {
-        P1Score += totalchanged;
-        P2Score -= totalchanged;
-    }
-    else {
-        P2Score += totalchanged;
-        P1Score -= totalchanged;
-    }
-    return totalchanged != 0;
+    return totalchanged;
 }
 
 void EndGame() {
