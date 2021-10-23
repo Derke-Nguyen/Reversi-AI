@@ -1,4 +1,4 @@
-#include "list.h"
+#include "movelist.h"
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -18,7 +18,7 @@ MoveListNode* List_GetMove(MoveList* list, short index) {
     return temp;
 }
 
-void List_Append(MoveList* list, short x, short y, int score) {
+void List_Append(MoveList* list, short x, short y, float score) {
     MoveListNode* newnode = malloc(sizeof(MoveListNode));
     newnode->x = x;
     newnode->y = y;
