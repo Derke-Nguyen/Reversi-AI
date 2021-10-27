@@ -19,6 +19,7 @@
 #include "movelist.h"
 #include "game.h"
 
+// 24 bytes
 typedef struct AIOpponent {
     MoveList* moves;// list of moves possible
     float eval;     // score of chosen spot
@@ -32,18 +33,21 @@ typedef struct AIOpponent {
 // Initializes AI for use
 // ai: ai to initiallize
 // @Return: true on success, false on failure
-bool InitAIOpponent(AIOpponent** ai);
+bool AI_Init(AIOpponent** ai);
 
 // Cleans up ai and frees memory
 // ai: ai to free
-void FreeAIOpponent(AIOpponent* ai);
+void AI_Free(AIOpponent* ai);
 
 // Chooses a move generated from minimax
 // ai: ai struct to use
 // board: the board state to use
 // @Return: bool if move was selected or not
-bool ChooseComputerMove(AIOpponent* ai, int8_t board[][BOARD_SIDE]);
+bool AI_Choose(AIOpponent* ai, int8_t board[][BOARD_SIDE]);
 
+/*******************************************************************************************
+* Move Selection Support
+********************************************************************************************/
 // Generates score of the board state after piece has been placed
 // player1: if evaluating for player 1
 // stage: how many turns have elapsed
@@ -51,9 +55,6 @@ bool ChooseComputerMove(AIOpponent* ai, int8_t board[][BOARD_SIDE]);
 // @Return: score of the board state
 float EvaluateBoardState(bool player1, int8_t stage, int8_t tempboard[][BOARD_SIDE]);
 
-/*******************************************************************************************
-* Move Selection Support
-********************************************************************************************/
 // Creates a tree of possible board moves and results
 // depth: Recursive depth count
 // alpha: max value to watch for
@@ -97,5 +98,13 @@ bool IsFrontier(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]);
 // y: start y
 // @Return: number of pieces to capture in all directions
 int8_t TotalPossibleCapture(int8_t x, int8_t y, bool player1, int8_t board[][BOARD_SIDE]);
+
+// Checks if there are any pieces around it that can be flipped
+// x: center x position
+// y: center y position
+// player1: if we're checking for player1
+// tempboard: board to check
+// @Return true if there is an opponent token
+bool HasTargetsAround(int8_t x, int8_t y, bool player1, int8_t tempboard[][BOARD_SIDE]);
 
 #endif //AIOPPONENT_H

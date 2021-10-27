@@ -14,7 +14,7 @@
 
 #include "game.h"
 
-bool InitGame(Game** game) {
+bool Game_Init(Game** game) {
     *game = malloc(sizeof(Game));
     if (*game == NULL) {
         printf("ERROR: GAME: Failed to initialize game\n");
@@ -27,25 +27,10 @@ bool InitGame(Game** game) {
     return true;
 }
 
-void InitBoard(int8_t board[][BOARD_SIDE]) {
-    board[3][4] = 1;
-    board[3][3] = 2;
-    board[4][4] = 2;
-    board[4][3] = 1;
-}
-
-void CopyBoard(int8_t board[][BOARD_SIDE], int8_t newboard[][BOARD_SIDE]) {
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
-            newboard[y][x] = board[y][x];
-        }
-    }
-}
-
-void ResetGame(Game* game) {
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
-            game->Board[y][x] = 0;
+void Game_Reset(Game* game) {
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
+            game->Board[y][x] = EMPTY_PIECE;
         }
     }
     game->P1Turn = true;
@@ -54,22 +39,22 @@ void ResetGame(Game* game) {
     InitBoard(game->Board);
 }
 
-void FreeGame(Game* game) {
+void Game_Free(Game* game) {
     free(game);
 }
 
-bool CheckGameOver(Game* game) {
+bool Game_CheckOver(Game* game) {
     if (game->P1Score + game->P2Score == 64 || game->P1Score == 0 || game->P2Score == 0) {
         return true;
     }
     return false;
 }
 
-void CommitMove(Game* game) {
+void Game_MoveCommit(Game* game) {
     int8_t p1score = 0;
     int8_t p2score = 0;
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
             if (game->Board[y][x] == PLAYER1_PIECE) {
                 ++p1score;
             }
@@ -84,36 +69,26 @@ void CommitMove(Game* game) {
     game->P1Turn = !(game->P1Turn);
 }
 
-bool HasTargetsAround(int8_t x, int8_t y, bool player1, int8_t board[][BOARD_SIDE]) {
-    for(int dy = -1; dy <= 1; ++dy) {
-        int8_t ny = y + dy;
-        if(ny < 0 || ny >= 8) {
-            continue;
-        }
-        for(int8_t dx = -1; dx <= 1; ++dx) {
-            if(dx == 0 && dy == 0){
-                continue;
-            }
-            
-            int8_t nx = x + dx;
-            if(nx < 0 || nx >= 8) {
-                continue;
-            }
-            
-            if(board[ny][nx] != 0 && board[ny][nx] != ((int8_t)(player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
-                return true;
-            }
-        }
-    }
-    return false;
+void InitBoard(int8_t board[][BOARD_SIDE]) {
+    board[3][4] = 1;
+    board[3][3] = 2;
+    board[4][4] = 2;
+    board[4][3] = 1;
 }
 
+void CopyBoard(int8_t board[][BOARD_SIDE], int8_t newboard[][BOARD_SIDE]) {
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
+            newboard[y][x] = board[y][x];
+        }
+    }
+}
 
 int8_t PiecesInDirection(int8_t x, int8_t y, int8_t dx, int8_t dy, bool player1, int8_t board[][BOARD_SIDE]) {
-    int captured = 0;
+    int8_t captured = 0;
     int8_t currpiece = (player1) ? PLAYER1_PIECE : PLAYER2_PIECE;
     while((x > -1 && x < 8) && (y > -1 && y < 8)) {
-        if(board[y][x] == 0) {
+        if(board[y][x] == EMPTY_PIECE) {
             return 0;
         }
         
@@ -188,7 +163,8 @@ bool FlipPieces(const int8_t x, const int8_t y, bool player1, int8_t board[][BOA
     {
         board[y][x] = currpiece;
         totalchanged++;
+        return true;
     }
 
-    return totalchanged != 0;
+    return false;
 }

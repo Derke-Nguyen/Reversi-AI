@@ -26,6 +26,11 @@ bool List_Init(MoveList** list) {
     return true;
 }
 
+void List_Free(MoveList* list) {
+    List_Clear(list);
+    free(list);
+}
+
 MoveListNode* List_GetMax(MoveList* list) {
     MoveListNode* currnode = list->head;
     MoveListNode* maxnode = currnode;

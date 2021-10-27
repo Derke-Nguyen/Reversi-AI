@@ -82,7 +82,7 @@ int main(void)
     SetTargetFPS(30);
     
     //Initialize game
-    if (!InitGame(&GameInstance)) {
+    if (!Game_Init(&GameInstance)) {
         return -1;
     }
     aiopponent = NULL;
@@ -90,7 +90,7 @@ int main(void)
     //--------------------------------------------------------------------------------------
     
     // Main game loop
-    //Only close on window close button or ESC key
+    // Only close on window close button or ESC key
     while (!WindowShouldClose())    
     {
         // Update
@@ -103,7 +103,7 @@ int main(void)
                     //Choose if vs Player or vs AI
                     if (ClickPosition.x > SCREEN_WIDTH / 2) {
                         VsAI = true;
-                        if (!InitAIOpponent(&aiopponent)) {
+                        if (!AI_Init(&aiopponent)) {
                             return -1;
                         }
                         if (ClickPosition.y < SCREEN_HEIGHT / 2) {
@@ -130,7 +130,8 @@ int main(void)
                     Winner = (GameInstance->P1Score > GameInstance->P2Score) ? PLAYER1_PIECE : PLAYER2_PIECE;
                 }
 
-                // For PvAI
+                // Player Vs AI
+                //--------------------------------------------------------------------------
                 if (VsAI) {
                     if (PlayerTurn) {
                         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -138,10 +139,11 @@ int main(void)
                             int x = (ClickPosition.x - DRAW_BOARD_X) / SQUARE_SIDE;
                             int y = (ClickPosition.y - DRAW_BOARD_Y) / SQUARE_SIDE;
 
+                            //we essentially flip first, and then commit to it if pieces were flipped
                             if (FlipPieces(x, y, P1IsPlayer, GameInstance->Board)) {
-                                CommitMove(GameInstance);
+                                Game_MoveCommit(GameInstance);
                                 PlayerTurn = false;
-                                if (CheckGameOver(GameInstance)) {
+                                if (Game_CheckOver(GameInstance)) {
                                     State = OVER;
                                     Winner = (GameInstance->P1Score > GameInstance->P2Score) ? PLAYER1_PIECE : PLAYER2_PIECE;
                                 }
@@ -152,16 +154,16 @@ int main(void)
                         }
                         // if passing
                         else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-                            CommitMove(GameInstance);
+                            Game_MoveCommit(GameInstance);
                             PlayerTurn = false;
                         }
                     }
                     else {
-                        if (ChooseComputerMove(aiopponent, GameInstance->Board)) {
+                        if (AI_Choose(aiopponent, GameInstance->Board)) {
                             if (FlipPieces(aiopponent->x, aiopponent->y, aiopponent->p1, GameInstance->Board)) {
-                                CommitMove(GameInstance);
+                                Game_MoveCommit(GameInstance);
                                 PlayerTurn = true;
-                                if (CheckGameOver(GameInstance)) {
+                                if (Game_CheckOver(GameInstance)) {
                                     State = OVER;
                                     Winner = (GameInstance->P1Score > GameInstance->P2Score) ? PLAYER1_PIECE : PLAYER2_PIECE;
                                 }
@@ -172,12 +174,15 @@ int main(void)
                             }
                         }
                         else {
-                            CommitMove(GameInstance);
+                            Game_MoveCommit(GameInstance);
                             PlayerTurn = true;
                         }
                     }
                 }
-                // For PvP
+                //--------------------------------------------------------------------------
+                
+                // Local Player Vs Player
+                //--------------------------------------------------------------------------
                 else {
                     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
                         ClickPosition = GetMousePosition();
@@ -185,17 +190,18 @@ int main(void)
                         int y = (ClickPosition.y - DRAW_BOARD_Y) / SQUARE_SIDE;
 
                         if (FlipPieces(x, y, GameInstance->P1Turn, GameInstance->Board)) {
-                            CommitMove(GameInstance);
-                            if (CheckGameOver(GameInstance)) {
+                            Game_MoveCommit(GameInstance);
+                            if (Game_CheckOver(GameInstance)) {
                                 State = OVER;
                                 Winner = (GameInstance->P1Score > GameInstance->P2Score) ? PLAYER1_PIECE : PLAYER2_PIECE;
                             }
                         }
                     }
                     else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-                        CommitMove(GameInstance);
+                        Game_MoveCommit(GameInstance);
                     }
                 }
+                //--------------------------------------------------------------------------
             }
             break;
             case OVER: {
@@ -237,18 +243,14 @@ int main(void)
     // De-Initialization
     //--------------------------------------------------------------------------------------
     if (VsAI) {
-        FreeAIOpponent(aiopponent);
+        AI_Free(aiopponent);
     }
-    FreeGame(GameInstance);
+    Game_Free(GameInstance);
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
     
     return 0;
 }
-
-/*******************************************************************************************
-* Enums and Struct Function Defs
-********************************************************************************************/
 
 /*******************************************************************************************
 * Module Function Defs
@@ -271,8 +273,9 @@ void DrawBoard() {
                 case PLAYER2_PIECE:
                 DrawCircle(xloc + CENTER_SQUARE, yloc + CENTER_SQUARE, DRAW_RADIUS, P2_COLOR);
                 break;
+                default:
+                break;
             }
-            
             xloc += SQUARE_SIDE;
         }
         yloc += SQUARE_SIDE;
@@ -282,7 +285,7 @@ void DrawBoard() {
 void DrawUI() {
     DrawText(TextFormat("%i", GameInstance->P2Score), 1690, 640, 100, (!GameInstance->P1Turn) ? P2_COLOR :PASSIVE_COLOR);
     DrawText(TextFormat("%i", GameInstance->P1Score), 1690, 440, 100, (GameInstance->P1Turn) ? P1_COLOR : PASSIVE_COLOR);
-    //Draw AI Values
+    // Draw AI Values
     if(VsAI) {
         DrawText(TextFormat("Depth Searched: %i", aiopponent->depth), 100, 440, 30, RED);
         DrawText(TextFormat("Eval: %2.2f", aiopponent->eval), 100, 540, 30, ORANGE);
@@ -300,11 +303,11 @@ void DrawUI() {
 }
 
 void DrawSelect() {
-    //Draw Local Select
+    // Draw Local Select
     DrawRectangle(0, 0, 960, SCREEN_HEIGHT, DARKGREEN);
     DrawText(TextFormat("Local"), 380, 440, 100, PASSIVE_COLOR);
     
-    //Draw AI Select
+    // Draw AI Select
     DrawRectangle(960, 0, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, BLACK);
     DrawRectangle(960, 541, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, WHITE);
     DrawText(TextFormat("P1"), 1430, 200, 100, P2_COLOR);
@@ -313,5 +316,5 @@ void DrawSelect() {
 
 void Reset() {
     State = SELECT;
-    ResetGame(GameInstance);
+    Game_Reset(GameInstance);
 }

@@ -15,7 +15,7 @@
 #include "aiopponent.h"
 #include <float.h>
 
-bool InitAIOpponent(AIOpponent** ai){
+bool AI_Init(AIOpponent** ai){
     *ai = malloc(sizeof(AIOpponent));
     if (*ai == NULL) {
         printf("ERROR: GAME: Failed to initialize AI\n");
@@ -35,12 +35,12 @@ bool InitAIOpponent(AIOpponent** ai){
     return true;
 }
 
-void FreeAIOpponent(AIOpponent* ai) {
+void AI_Free(AIOpponent* ai) {
     List_Clear(ai->moves);
     free(ai);
 }
 
-bool ChooseComputerMove(AIOpponent* ai, int8_t board[][BOARD_SIDE]) {
+bool AI_Choose(AIOpponent* ai, int8_t board[][BOARD_SIDE]) {
     ai->depth = (ai->stage < 10) ? 2 : 6;
 
     int8_t tempboard[BOARD_SIDE][BOARD_SIDE] = { 0 };
@@ -235,7 +235,7 @@ float Search(int8_t depth, float alpha, float beta, int8_t stage, bool maxer, bo
 
         iter = iter->next;
     }
-    List_Clear(possiblemoves);
+    List_Free(possiblemoves);
     return alpha;
 }
 
@@ -376,4 +376,28 @@ int8_t TotalPossibleCapture(int8_t x, int8_t y, bool player1, int8_t board[][BOA
         totalcapture += PiecesInDirection(x + 1, y + 1, 1, 1, player1, board);
 
     return totalcapture;
+}
+
+bool HasTargetsAround(int8_t x, int8_t y, bool player1, int8_t board[][BOARD_SIDE]) {
+    for (int8_t dy = -1; dy <= 1; ++dy) {
+        int8_t ny = y + dy;
+        if (ny < 0 || ny >= 8) {
+            continue;
+        }
+        for (int8_t dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) {
+                continue;
+            }
+
+            int8_t nx = x + dx;
+            if (nx < 0 || nx >= 8) {
+                continue;
+            }
+
+            if (board[ny][nx] != 0 && board[ny][nx] != ((int8_t)(player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }

@@ -18,13 +18,15 @@
 
 #include "def.h"
 
+// 16 bytes
 typedef struct MoveListNode {
+    struct MoveListNode* next;
+    float score;
     int8_t x;
     int8_t y;
-    float score;
-    struct MoveListNode* next;
 } MoveListNode;
 
+// 24 bytes
 typedef struct MoveList {
     struct MoveListNode* head;
     struct MoveListNode* tail;
@@ -34,6 +36,8 @@ typedef struct MoveList {
 // Initialize list to use
 // list: list to initialize
 bool List_Init(MoveList** list);
+
+void List_Free(MoveList* list);
 
 // Gets the move with the highest score
 // list: list to iterate through
