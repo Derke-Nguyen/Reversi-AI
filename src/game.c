@@ -1,32 +1,106 @@
-short PlayerPiece() {
-    return (P1Turn) ? 1 : 2;
+/*******************************************************************************************
+*
+*   Reversi AI
+*
+*   This game has been created using raylib 3.7 (www.raylib.com)
+*   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
+*
+*   Copyright (c) 2021 Derek Nguyen
+*
+*   DESCRIPTION:
+*       All possible ways to interact with the game
+*
+********************************************************************************************/
+
+#include "game.h"
+
+bool InitGame(Game** game) {
+    *game = malloc(sizeof(Game));
+    if (*game == NULL) {
+        printf("ERROR: GAME: Failed to initialize game\n");
+        return false;
+    }
+    (*game)->P1Turn = true;
+    (*game)->P1Score = 2;
+    (*game)->P2Score = 2;
+    InitBoard((*game)->Board);
+    return true;
 }
 
-short OpponentPiece() {
-    return (P1Turn) ? 2 : 1;
+void InitBoard(int8_t board[][BOARD_SIDE]) {
+    board[3][4] = 1;
+    board[3][3] = 2;
+    board[4][4] = 2;
+    board[4][3] = 1;
 }
 
-bool IsPlayerTurn() {
-    return (P1Turn == P1IsPlayer);
+void CopyBoard(int8_t board[][BOARD_SIDE], int8_t newboard[][BOARD_SIDE]) {
+    for (int y = 0; y < BOARD_SIDE; ++y) {
+        for (int x = 0; x < BOARD_SIDE; ++x) {
+            newboard[y][x] = board[y][x];
+        }
+    }
 }
 
-bool HasTargetsAround(short x, short y, bool player1, short board[][BOARD_SIDE]) {
+void ResetGame(Game* game) {
+    for (int y = 0; y < BOARD_SIDE; ++y) {
+        for (int x = 0; x < BOARD_SIDE; ++x) {
+            game->Board[y][x] = 0;
+        }
+    }
+    game->P1Turn = true;
+    game->P1Score = 2;
+    game->P2Score = 2;
+    InitBoard(game->Board);
+}
+
+void FreeGame(Game* game) {
+    free(game);
+}
+
+bool CheckGameOver(Game* game) {
+    if (game->P1Score + game->P2Score == 64 || game->P1Score == 0 || game->P2Score == 0) {
+        return true;
+    }
+    return false;
+}
+
+void CommitMove(Game* game) {
+    int8_t p1score = 0;
+    int8_t p2score = 0;
+    for (int y = 0; y < BOARD_SIDE; ++y) {
+        for (int x = 0; x < BOARD_SIDE; ++x) {
+            if (game->Board[y][x] == PLAYER1_PIECE) {
+                ++p1score;
+            }
+            else if (game->Board[y][x] == PLAYER2_PIECE) {
+                ++p2score;
+            }
+        }
+    }
+
+    game->P1Score = p1score;
+    game->P2Score = p2score;
+    game->P1Turn = !(game->P1Turn);
+}
+
+bool HasTargetsAround(int8_t x, int8_t y, bool player1, int8_t board[][BOARD_SIDE]) {
     for(int dy = -1; dy <= 1; ++dy) {
-        short ny = y + dy;
+        int8_t ny = y + dy;
         if(ny < 0 || ny >= 8) {
             continue;
         }
-        for(short dx = -1; dx <= 1; ++dx) {
+        for(int8_t dx = -1; dx <= 1; ++dx) {
             if(dx == 0 && dy == 0){
                 continue;
             }
             
-            short nx = x + dx;
+            int8_t nx = x + dx;
             if(nx < 0 || nx >= 8) {
                 continue;
             }
             
-            if(board[ny][nx] != 0 && board[ny][nx] != ((short)(player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
+            if(board[ny][nx] != 0 && board[ny][nx] != ((int8_t)(player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
                 return true;
             }
         }
@@ -34,9 +108,10 @@ bool HasTargetsAround(short x, short y, bool player1, short board[][BOARD_SIDE])
     return false;
 }
 
-int PiecesInDirection(short x, short y, short dx, short dy, bool player1, short board[][BOARD_SIDE]) {
+
+int8_t PiecesInDirection(int8_t x, int8_t y, int8_t dx, int8_t dy, bool player1, int8_t board[][BOARD_SIDE]) {
     int captured = 0;
-    short currpiece = (player1) ? PLAYER1_PIECE : PLAYER2_PIECE;
+    int8_t currpiece = (player1) ? PLAYER1_PIECE : PLAYER2_PIECE;
     while((x > -1 && x < 8) && (y > -1 && y < 8)) {
         if(board[y][x] == 0) {
             return 0;
@@ -53,150 +128,67 @@ int PiecesInDirection(short x, short y, short dx, short dy, bool player1, short 
     return 0;
 }
 
-int TotalPossibleCapture(short x, short y, bool player1, short board[][BOARD_SIDE]) {
-    if(Board[y][x] != 0) {
-        return 0;
-    }
-    
-    int totalcapture = 0;
-    
-    //check left
-    if(x-1 > -1)
-        totalcapture += PiecesInDirection(x - 1, y, -1, 0, player1, board);
-    
-    //check right
-    if(x+1 < 8)
-        totalcapture += PiecesInDirection(x + 1, y, 1, 0, player1, board);
-    
-    //check up left
-    if(x-1 > -1 && y-1 > -1)
-        totalcapture += PiecesInDirection(x - 1, y - 1, -1, -1, player1, board);
-    
-    //check up
-    if(y-1 > -1)
-        totalcapture += PiecesInDirection(x , y - 1, 0, -1, player1, board);
-    
-    //check up right
-    if(x+1 < 8 && y-1 > -1)
-        totalcapture += PiecesInDirection(x + 1, y - 1, 1, -1, player1, board);
-    
-    //check down left
-    if(x-1 > -1 && y+1 < 8)
-        totalcapture += PiecesInDirection(x - 1, y + 1, -1, 1, player1, board);
-    
-    //check down
-    if(y+1 < 8)
-        totalcapture += PiecesInDirection(x, y + 1, 0, 1, player1, board);
-    
-    //check down right
-    if(x+1 < 8 && y+1 < 8)
-        totalcapture += PiecesInDirection(x + 1, y + 1, 1, 1, player1, board);
-    
-    return totalcapture;
-}
-
-int FlipPieces(const short x, const short y, bool player1, short board[][BOARD_SIDE]) {
+bool FlipPieces(const int8_t x, const int8_t y, bool player1, int8_t board[][BOARD_SIDE]) {
     if(board[y][x] != 0) {
         return false;
     }
     
-    int totalchanged = 0;
-    int captured = 0;
-    short currpiece = (player1) ? 1 : 2;
+    int8_t totalchanged = 0;
+    int8_t captured = 0;
+    int8_t currpiece = (player1) ? PLAYER1_PIECE : PLAYER2_PIECE;
     //check left
     captured = PiecesInDirection(x - 1, y, -1, 0, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y][x - 1 - i] = currpiece;
     }
-    
     //check right
     captured = PiecesInDirection(x + 1, y, 1, 0, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y][x + 1 + i] = currpiece;
     }
-    
     //check up left
     captured = PiecesInDirection(x - 1, y - 1, -1, -1, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y - 1 - i][x - 1 - i] = currpiece;
     }
-    
     //check up
     captured = PiecesInDirection(x , y - 1, 0, -1, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y - 1 - i][x] = currpiece;
     }
-    
     //check up right
     captured = PiecesInDirection(x + 1, y - 1, 1, -1, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y - 1 - i][x + 1 + i] = currpiece;
     }
-    
     //check down left
     captured = PiecesInDirection(x - 1, y + 1, -1, 1, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y + 1 + i][x - 1 - i] = currpiece;
     }
-    
     //check down
     captured = PiecesInDirection(x, y + 1, 0, 1, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y + 1 + i][x] = currpiece;
     }
-    
     //check down right
     captured = PiecesInDirection(x + 1, y + 1, 1, 1, player1, board);
     totalchanged += captured;
-    for(int i = 0; i < captured; ++i) {
+    for(int8_t i = 0; i < captured; ++i) {
         board[y + 1 + i][x + 1 + i] = currpiece;
     }
-    
-    return totalchanged;
-}
+    if (totalchanged != 0)
+    {
+        board[y][x] = currpiece;
+        totalchanged++;
+    }
 
-void EndGame() {
-    GameOver = true;
-    
-    if(P1Score == P2Score) {
-        Winner = 0;
-    }
-    else if(P1Score < P2Score) {
-        Winner = 2;
-    }
-    else {
-        Winner = 1;
-    }
-}
-
-void InitBoard(short board[][BOARD_SIDE]) {
-    board[3][4] = 1;
-    board[3][3] = 2;
-    board[4][4] = 2;
-    board[4][3] = 1;
-    P1Turn = true;
-}
-
-void CopyBoard(short board[][BOARD_SIDE], short newboard[][BOARD_SIDE]) {
-    for(int y = 0; y < BOARD_SIDE; ++y) {
-        for(int x = 0; x < BOARD_SIDE; ++x) {
-            newboard[y][x] = board[y][x];
-        }
-    }
-}
-
-void ResetGame() {
-    for(int y = 0; y < BOARD_SIDE; ++y) {
-        for(int x = 0; x < BOARD_SIDE; ++x) {
-            Board[y][x] = 0;
-        }
-    }
-    InitBoard();
+    return totalchanged != 0;
 }

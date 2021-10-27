@@ -1,43 +1,68 @@
-#include "movelist.h"
-#include <stddef.h>
-#include <stdlib.h>
+/*******************************************************************************************
+*
+*   Reversi AI
+*
+*   This game has been created using raylib 3.7 (www.raylib.com)
+*   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
+*
+*   Copyright (c) 2021 Derek Nguyen
+*
+*   DESCRIPTION:
+*       Definitions of list functions
+*
+********************************************************************************************/
 
-void List_Init(MoveList** list) {
+#include "movelist.h"
+
+bool List_Init(MoveList** list) {
     *list = malloc(sizeof(MoveList));
+    if (*list == NULL) {
+        printf("ERROR: GAME: Failed to initialize movelist\n");
+        return false;
+    }
     (*list)->head = NULL;
     (*list)->tail = NULL;
     (*list)->count = 0;
+    return true;
 }
 
-MoveListNode* List_GetMove(MoveList* list, short index) {
-    MoveListNode* temp = list->head;
-    for(int i = 0; i < index; ++i) {
-        temp = temp->next;
+MoveListNode* List_GetMax(MoveList* list) {
+    MoveListNode* currnode = list->head;
+    MoveListNode* maxnode = currnode;
+    int maxscore = currnode->score;
+    while (currnode != NULL) {
+        if (currnode->score > maxscore) {
+            maxscore = currnode->score;
+            maxnode = currnode;
+        }
+        currnode = currnode->next;
     }
-    
-    return temp;
+    return maxnode;
 }
 
-void List_Append(MoveList* list, short x, short y, float score) {
+void List_Append(MoveList* list, int8_t x, int8_t y, float score) {
     MoveListNode* newnode = malloc(sizeof(MoveListNode));
+    if (newnode == NULL) {
+        printf("ERROR: GAME: Failed to add a new node to movelist\n");
+        return;
+    }
     newnode->x = x;
     newnode->y = y;
     newnode->score = score;
     newnode->next = NULL;
     
-    //if not empty
+    // if not empty
     if(list->count != 0) {
         list->tail->next = newnode;
         list->tail = newnode;
         list->count += 1;
     }
-    //if the list is empty
+    // if the list is empty
     else {
         list->head = newnode;
         list->tail = newnode;
         list->count = 1;
     }
-    
 }
 
 void List_Clear(MoveList* list) {
@@ -49,25 +74,7 @@ void List_Clear(MoveList* list) {
         currnode = nextnode;
     }
     
-    
     list->head = NULL;
     list->tail = NULL;
     list->count = 0;
-}
-
-int List_FindMax(MoveList* list) {
-    int maxindex = 0;
-    int maxscore = 0;
-    int index = 0;
-    MoveListNode* currnode = list->head;
-    while(currnode != NULL) {
-        if(currnode->score > maxscore) {
-            maxscore = currnode->score;
-            maxindex = index;
-        }
-        currnode = currnode->next;
-        index++;
-    }
-    
-    return maxindex;
 }

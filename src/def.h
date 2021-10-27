@@ -1,22 +1,39 @@
-/* date = October 22nd 2021 6:42 pm */
+/*******************************************************************************************
+*
+*   Reversi AI
+*
+*   This game has been created using raylib 3.7 (www.raylib.com)
+*   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
+*
+*   Copyright (c) 2021 Derek Nguyen
+*
+*   DESCRIPTION:
+*       Internally used key defines for game
+*
+********************************************************************************************/
+
+#ifndef int8_t
+typedef signed char int8_t;
+#define int8_t int8_t
+#define INT8_MIN (-128)
+#define INT8_MAX (127)
+#endif
 
 #ifndef DEF_H
 #define DEF_H
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <stdio.h>
+
+#define EMPTY_PIECE 0
 #define PLAYER1_PIECE 1
 #define PLAYER2_PIECE 2
 
 #define BOARD_SIDE 8
 
-const float BOARD_VALUES[BOARD_SIDE][BOARD_SIDE] = {
-    {16.16, -3.03,  0.99,  0.43,  0.43,  0.99, -3.03, 16.16},
-    {-4.12, -1.81, -0.08, -0.27, -0.27, -0.08, -1.81, -4.12},
-    {1.33 , -0.04,  0.51,  0.07,  0.07,  0.51, -0.04, 1.33 },
-    {0.6  , -0.18, -0.04, -0.01, -0.01, -0.04, -0.18, 0.6  },
-    {0.6  , -0.18, -0.04, -0.01, -0.01, -0.04, -0.18, 0.6  },
-    {1.33 , -0.04,  0.51,  0.07,  0.07,  0.51, -0.04, 1.33 },
-    {-4.12, -1.81, -0.08, -0.27, -0.27, -0.08, -1.81, -4.12},
-    {16.16, -3.03,  0.99,  0.43,  0.43,  0.99, -3.03, 16.16}
-};
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 #endif //DEF_H

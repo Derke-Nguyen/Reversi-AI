@@ -1,69 +1,82 @@
-/* date = October 22nd 2021 6:33 pm */
+/*******************************************************************************************
+*
+*   Reversi AI
+*
+*   This game has been created using raylib 3.7 (www.raylib.com)
+*   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
+*
+*   Copyright (c) 2021 Derek Nguyen
+*
+*   DESCRIPTION:
+*       Main game data structure
+*
+********************************************************************************************/
 
 #ifndef GAME_H
 #define GAME_H
 
 #include "def.h"
-#include "aiopponent"
-
 typedef struct Game {
-    bool P1Turn = true;
-    int P1Score = 0;
-    int P2Score = 0;
-    AIOpponent* aiopponent;
+    bool P1Turn;
+    int8_t P1Score;
+    int8_t P2Score;
+    int8_t Board[BOARD_SIDE][BOARD_SIDE];
 }Game;
 
-// Gameplay Functions
-//-----------------------------------------------------------------------------------------
-//Determines which color piece to place based on player turn
-//@Return: the piece to place
-short PlayerPiece();
+// Init the game
+// game: game to initialize
+// @Return: true if able to init game
+bool InitGame(Game** game);
 
-//Determines which color piece to place based on opponent turn
-//@Return: the piece to place
-short OpponentPiece();
+// places the 4 pieces in the middle
+// board: board to initialize
+void InitBoard(int8_t board[][BOARD_SIDE]);
 
-//Checks if it's the player's turn
-//@Return true if player turn matches player
-bool IsPlayerTurn();
+// Copies board onto the new board
+// board: board to copy
+// newboard: target board
+void CopyBoard(int8_t board[][BOARD_SIDE], int8_t newboard[][BOARD_SIDE]);
 
-//Checks if there are any pieces around it that can be flipped
-//x: center x position
-//y: center y position
-//player1: if we're checking for player1
-//tempboard: board to check
-//@Return true if there is an opponent token
-bool HasTargetsAround(short x, short y, bool player1, short tempboard[][BOARD_SIDE]);
+// Resets game and board to initial state
+// game: game to reset
+void ResetGame(Game* game);
+
+// Frees the game memory
+// game: game to free
+void FreeGame(Game* game);
+
+// Checks if the game is over(if all spaces are taken, or one side has 0 tokens)
+// game: game to check
+// @Return: true if game is over
+bool CheckGameOver(Game* game);
+
+// Places the piece and then sums up points(flip happens before this)
+// game: game to commit to
+void CommitMove(Game* game);
+
+// Checks if there are any pieces around it that can be flipped
+// x: center x position
+// y: center y position
+// player1: if we're checking for player1
+// tempboard: board to check
+// @Return true if there is an opponent token
+bool HasTargetsAround(int8_t x, int8_t y, bool player1, int8_t tempboard[][BOARD_SIDE]);
 
 // Number of pieces that can be captured in a direction
-//x: x of the first capture piece
-//y: y of the first capture piece
-//dx: direction to move towards x
-//dy: direction to move towards y
-//Return: number of pieces that can be captured
-int PiecesInDirection(short x, short y, short dx, short dy, bool player1, short board[][BOARD_SIDE]);
+// x: x of the first capture piece
+// y: y of the first capture piece
+// dx: direction to move towards x
+// dy: direction to move towards y
+// @Return: number of pieces that can be captured
+int8_t PiecesInDirection(int8_t x, int8_t y, int8_t dx, int8_t dy, bool player1, int8_t board[][BOARD_SIDE]);
 
-// Total possible piece captures
-//x: start x
-//y: start y
-//@Return: number of pieces to capture in all directions
-int TotalPossibleCapture(short x, short y, bool player1, short board[][BOARD_SIDE]);
 
-//
-//x: start x
-//y: start y
-//Return: If any pieces were flipped
-int FlipPieces(const short x, const short y, bool player1, short board[][BOARD_SIDE]);
 
-//Init the board
-void InitBoard(short board[][BOARD_SIDE]);
-
-void CopyBoard(short board[][BOARD_SIDE], short newboard[][BOARD_SIDE]);
-
-//Resets the game
-void ResetGame(short board[][BOARD_SIDE]);
-
-//Determines the winner and ends the game
-void EndGame();
+// Flips pieces on the board
+// x: start x
+// y: start y
+// player1: if flipping for player1
+// Return: true If any pieces were flipped
+bool FlipPieces(const int8_t x, const int8_t y, bool player1, int8_t board[][BOARD_SIDE]);
 
 #endif //GAME_H

@@ -1,89 +1,101 @@
-/* date = October 22nd 2021 6:27 pm */
+/*******************************************************************************************
+*
+*   Reversi AI
+*
+*   This game has been created using raylib 3.7 (www.raylib.com)
+*   raylib is licensed under an unmodified zlib/libpng license (View raylib.h for details)
+*
+*   Copyright (c) 2021 Derek Nguyen
+*
+*   DESCRIPTION:
+*       AI opponent declaration
+*
+********************************************************************************************/
 
 #ifndef AIOPPONENT_H
 #define AIOPPONENT_H
 
 #include "def.h"
 #include "movelist.h"
+#include "game.h"
 
-#endif //AIOPPONENT_H
-
-//AI Entity
 typedef struct AIOpponent {
-    MoveList* AIPossibleMoves;
-    float EvalValue = 0;
-    short DepthSearched = 0;
-    Vector2 AIMoveChosen = {0,0};
-}AIOpponent;
+    MoveList* moves;// list of moves possible
+    float eval;     // score of chosen spot
+    int8_t depth;   // depth chosen to search
+    int8_t x;       // chosen x spot to place
+    int8_t y;       // chosen y spot to place
+    int8_t stage;   // moves played this game
+    bool p1;        // if ai is player 1
+} AIOpponent;
 
-// AI Functions
-//-----------------------------------------------------------------------------------------
-//Creates a tree of possible board moves and results
-//depth: Recursive depth count
-//tempboard: a temp board state
-//@Return: the evaluation score
-int Search(short depth, bool maxer, short tempboard[][BOARD_SIDE]);
+// Initializes AI for use
+// ai: ai to initiallize
+// @Return: true on success, false on failure
+bool InitAIOpponent(AIOpponent** ai);
+
+// Cleans up ai and frees memory
+// ai: ai to free
+void FreeAIOpponent(AIOpponent* ai);
+
+// Chooses a move generated from minimax
+// ai: ai struct to use
+// board: the board state to use
+// @Return: bool if move was selected or not
+bool ChooseComputerMove(AIOpponent* ai, int8_t board[][BOARD_SIDE]);
+
+// Generates score of the board state after piece has been placed
+// player1: if evaluating for player 1
+// stage: how many turns have elapsed
+// tempboard: what the board will look like after the play
+// @Return: score of the board state
+float EvaluateBoardState(bool player1, int8_t stage, int8_t tempboard[][BOARD_SIDE]);
+
+/*******************************************************************************************
+* Move Selection Support
+********************************************************************************************/
+// Creates a tree of possible board moves and results
+// depth: Recursive depth count
+// alpha: max value to watch for
+// beta: min valaue to watch for
+// stage: how many moves have been made by AI
+// maxer: if evaluating for a maxer
+// player1: if looking at a player1
+// tempboard: a temp board state
+// @Return: the evaluation score
+float Search(int8_t depth, float alpha, float beta, int8_t stage, bool maxer, bool player1, int8_t tempboard[][BOARD_SIDE]);
+
+// Checks if the piece is a stable piece(symmetrical on all sides) so it can't be flipped
+// x: x location
+// y: y location
+// tempboard: a temp board state
+//@Return: true if it's a stable piece
+bool IsStable(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]);
 
 // Gets the number of tokens surrounding a location
-//x: x location 
-//y: y location
+// x: x location 
+// y: y location
+// tempboard: a temp board state
 //@Return: number of tokens surrounding a piece
-int NumberOfTokensAround(short x, short y, short tempboard[][BOARD_SIDE]);
+int NumberOfTokensAround(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]);
 
-// Generates score of the board state
-//@Return: 
-float EvaluateBoardState(bool maxer, short tempboard[][BOARD_SIDE]);
+// Counts how many possible moves there are for a player
+// player1: player to look for moves
+// tempboard: a temp board state
+// @Return: number of possible moves
+int PossibleMovesCount(bool player1, int8_t tempboard[][BOARD_SIDE]);
 
-//Genereates a score based on a location
-//x: x location
-//y: y location
-//@Return: the score of a certain move
-//float GenerateScore(short x, short y, short tempboard[][BOARD_SIDE])
+// Checks if the piece is a frontier piece
+// x: x location 
+// y: y location
+// tempboard: a temp board state
+// @Return: true if it's a frontier piece
+bool IsFrontier(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]);
 
-//Chooses a move generated from minimax
-//@Return: The location of the move selected
-Vector2 ChooseComputerMove();
+// Total possible piece captures
+// x: start x
+// y: start y
+// @Return: number of pieces to capture in all directions
+int8_t TotalPossibleCapture(int8_t x, int8_t y, bool player1, int8_t board[][BOARD_SIDE]);
 
-
-int PossibleMovesCount(bool player1, short tempboard[][BOARD_SIDE]) {
-    int result = 0;
-    for(int y = 0; y < BOARD_SIDE; ++y) {
-        for(int x = 0; x < BOARD_SIDE; ++x) {
-            if(Board[y][x] == 0 && HasTargetsAround(x, y, player1, Board)) {
-                int capturepossible = TotalPossibleCapture(x, y, player1, Board);
-                if(capturepossible != 0) {
-                    ++result;
-                }
-            }
-        }
-    }
-    return result;
-}
-
-bool IsFrontier(short x, short y, short tempboard[][BOARD_SIDE]) {
-    //int tokens = 0;
-    //short currPiece = tempboard[y][x];
-    for(int dy = -1; dy <= 1; ++dy) {
-        short ny = y + dy;
-        if(ny < 0 || ny >= 8) {
-            continue;
-        }
-        for(short dx = -1; dx <= 1; ++dx) {
-            if(dx == 0 && dy == 0){
-                continue;
-            }
-            
-            short nx = x + dx;
-            if(nx < 0 || nx >= 8) {
-                continue;
-            }
-            
-            if(tempboard[ny][nx] == 0) {
-                true;
-            }
-        }
-    }
-    
-    
-    return false;
-}
+#endif //AIOPPONENT_H
