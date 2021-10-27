@@ -41,18 +41,19 @@ void AI_Free(AIOpponent* ai) {
 }
 
 bool AI_Choose(AIOpponent* ai, int8_t board[][BOARD_SIDE]) {
+    // depending on the stage of the game, search different depths
     ai->depth = (ai->stage < 10) ? 2 : 6;
 
     int8_t tempboard[BOARD_SIDE][BOARD_SIDE] = { 0 };
 
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
+    // go through every possible move and evaluate it
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
             if (board[y][x] == 0 && HasTargetsAround(x, y, ai->p1, board)) {
-                //copy board
+                // copy board
                 CopyBoard(board, tempboard);
                 if (FlipPieces(x, y, ai->p1, tempboard)) {
                     float score = Search(ai->depth, -FLT_MAX, FLT_MAX, ai->stage, false, ai->p1, tempboard);
-
                     List_Append(ai->moves, x, y, score);
                 }
             }
@@ -63,7 +64,7 @@ bool AI_Choose(AIOpponent* ai, int8_t board[][BOARD_SIDE]) {
         return false;
     }
 
-    //highest capture
+    // highest capture
     MoveListNode* max = List_GetMax(ai->moves);
     ai->x = max->x;
     ai->y = max->y;
@@ -73,6 +74,7 @@ bool AI_Choose(AIOpponent* ai, int8_t board[][BOARD_SIDE]) {
     return true;
 }
 
+// list of heuristics to judge for board picks
 float BOARD_VALUES[BOARD_SIDE][BOARD_SIDE] = {
     {16.16, -3.03,  0.99,  0.43,  0.43,  0.99, -3.03, 16.16},
     {-4.12, -1.81, -0.08, -0.27, -0.27, -0.08, -1.81, -4.12},
@@ -85,16 +87,18 @@ float BOARD_VALUES[BOARD_SIDE][BOARD_SIDE] = {
 };
 float EvaluateBoardState(bool player1, int8_t stage, int8_t tempboard[][BOARD_SIDE]) {
     float score = 0;
-    //1 low
-    //5 middle
-    //10 high
+    int8_t currpiece = (player1) ? PLAYER1_PIECE : PLAYER2_PIECE;
+    // Score multiplier
+    // 1 low
+    // 5 middle
+    // 10 high
 
     //Stability (Measures number of discs that cannot be flipped, High)
     float stbonus = 10;
     int8_t stablecount = 0;
     for (int y = 0; y < BOARD_SIDE; ++y) {
         for (int x = 0; x < BOARD_SIDE; ++x) {
-            if (IsStable(x, y, tempboard) && ((tempboard[y][x] == PLAYER1_PIECE && player1) || (tempboard[y][x] == PLAYER2_PIECE && !player1))) {
+            if (IsStable(x, y, tempboard) && (tempboard[y][x] == currpiece)) {
                 ++stablecount;
             }
         }
@@ -105,27 +109,26 @@ float EvaluateBoardState(bool player1, int8_t stage, int8_t tempboard[][BOARD_SI
     float mobonus = (stage < 10) ? 1 : 10;
     score += PossibleMovesCount(player1, tempboard) * mobonus;
 
-
     //Corner Grab (Measures if corner capture is possible with its next move, High)
     float cgbonus = 10;
-    if (tempboard[0][0] == (int8_t)((player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
+    if (tempboard[0][0] == currpiece) {
         score += cgbonus;
     }
-    if (tempboard[0][BOARD_SIDE - 1] == (int8_t)((player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
+    if (tempboard[0][BOARD_SIDE - 1] == currpiece) {
         score += cgbonus;
     }
-    if (tempboard[BOARD_SIDE - 1][0] == (int8_t)((player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
+    if (tempboard[BOARD_SIDE - 1][0] == currpiece) {
         score += cgbonus;
     }
-    if (tempboard[BOARD_SIDE - 1][BOARD_SIDE - 1] == (int8_t)((player1) ? PLAYER1_PIECE : PLAYER2_PIECE)) {
+    if (tempboard[BOARD_SIDE - 1][BOARD_SIDE - 1] == currpiece) {
         score += cgbonus;
     }
 
     //Placment (Piece placement score minus piece placement score of opponent)
     float plbonus = 10;
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
-            score += BOARD_VALUES[y][x] * plbonus;
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
+            score += BOARD_VALUES[y][x] * plbonus * ((currpiece == tempboard[y][x]) ? 1 : -1);
         }
     }
 
@@ -133,8 +136,8 @@ float EvaluateBoardState(bool player1, int8_t stage, int8_t tempboard[][BOARD_SI
     float frbonus = 5;
     int8_t p1piece = 0;
     int8_t p2piece = 0;
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
             int8_t piece = tempboard[y][x];
             if (piece == 0) {
                 continue;
@@ -156,8 +159,8 @@ float EvaluateBoardState(bool player1, int8_t stage, int8_t tempboard[][BOARD_SI
     float ddbonus = (stage < 10) ? 10 : 1;
     p1piece = 0;
     p2piece = 0;
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
             int8_t piece = tempboard[y][x];
             if (piece == 0) {
                 continue;
@@ -186,8 +189,8 @@ float Search(int8_t depth, float alpha, float beta, int8_t stage, bool maxer, bo
     //Generate a list of moves
     MoveList* possiblemoves;
     List_Init(&possiblemoves);
-    for(int y = 0; y < BOARD_SIDE; ++y) {
-        for(int x = 0; x < BOARD_SIDE; ++x) {
+    for(int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for(int8_t x = 0; x < BOARD_SIDE; ++x) {
             if(tempboard[y][x] == 0 && HasTargetsAround(x, y, player1, tempboard)) {
                 int capturepossible = TotalPossibleCapture(x,y, player1, tempboard);
                 if(capturepossible != 0) {
@@ -207,11 +210,7 @@ float Search(int8_t depth, float alpha, float beta, int8_t stage, bool maxer, bo
     int8_t newtempboard[BOARD_SIDE][BOARD_SIDE] = {0};
     while(iter != NULL) {
         //make a board
-        for(int y = 0; y < BOARD_SIDE; ++y) {
-            for(int x = 0; x < BOARD_SIDE; ++x) {
-                newtempboard[y][x] = tempboard[y][x];
-            }
-        }
+        CopyBoard(tempboard, newtempboard);
         //make move
         int8_t x = iter->x;
         int8_t y = iter->y;
@@ -219,12 +218,6 @@ float Search(int8_t depth, float alpha, float beta, int8_t stage, bool maxer, bo
         
         float evaluation = -Search(depth-1, -beta, -alpha, stage + 1, !maxer, !player1, newtempboard);
         printf("Depth: %i, Eval: %0.2f, Move: %i,%i\n", depth, evaluation, x, y);
-        //undo move
-        for(int y = 0; y < BOARD_SIDE; ++y) {
-            for(int x = 0; x < BOARD_SIDE; ++x) {
-                newtempboard[y][x] = tempboard[y][x];
-            }
-        }
 
         //snip because alpha beta
         if (evaluation >= beta) {
@@ -271,8 +264,8 @@ bool IsStable(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]) {
 }
 
 int NumberOfTokensAround(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]) {
-    int tokens = 0;
-    for (int dy = -1; dy <= 1; ++dy) {
+    int8_t tokens = 0;
+    for (int8_t dy = -1; dy <= 1; ++dy) {
         int8_t ny = y + dy;
         if (ny < 0 || ny >= 8) {
             continue;
@@ -296,11 +289,11 @@ int NumberOfTokensAround(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]) {
 }
 
 int PossibleMovesCount(bool player1, int8_t tempboard[][BOARD_SIDE]) {
-    int result = 0;
-    for (int y = 0; y < BOARD_SIDE; ++y) {
-        for (int x = 0; x < BOARD_SIDE; ++x) {
+    int8_t result = 0;
+    for (int8_t y = 0; y < BOARD_SIDE; ++y) {
+        for (int8_t x = 0; x < BOARD_SIDE; ++x) {
             if (tempboard[y][x] == 0 && HasTargetsAround(x, y, player1, tempboard)) {
-                int capturepossible = TotalPossibleCapture(x, y, player1, tempboard);
+                int8_t capturepossible = TotalPossibleCapture(x, y, player1, tempboard);
                 if (capturepossible != 0) {
                     ++result;
                 }
@@ -311,17 +304,17 @@ int PossibleMovesCount(bool player1, int8_t tempboard[][BOARD_SIDE]) {
 }
 
 bool IsFrontier(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]) {
-    for (int dy = -1; dy <= 1; ++dy) {
-        short ny = y + dy;
+    for (int8_t dy = -1; dy <= 1; ++dy) {
+        int8_t ny = y + dy;
         if (ny < 0 || ny >= 8) {
             continue;
         }
-        for (short dx = -1; dx <= 1; ++dx) {
+        for (int8_t dx = -1; dx <= 1; ++dx) {
             if (dx == 0 && dy == 0) {
                 continue;
             }
 
-            short nx = x + dx;
+            int8_t nx = x + dx;
             if (nx < 0 || nx >= 8) {
                 continue;
             }
@@ -332,7 +325,6 @@ bool IsFrontier(int8_t x, int8_t y, int8_t tempboard[][BOARD_SIDE]) {
         }
     }
 
-
     return false;
 }
 
@@ -341,7 +333,7 @@ int8_t TotalPossibleCapture(int8_t x, int8_t y, bool player1, int8_t board[][BOA
         return 0;
     }
 
-    int totalcapture = 0;
+    int8_t totalcapture = 0;
 
     //check left
     if (x - 1 > -1)
